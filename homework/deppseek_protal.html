@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI聊天助手</title>
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        /* 整体布局 */
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        /* 左侧导航栏样式 */
+        .sidebar {
+            width: 260px;
+            background-color: #252525;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #333;
+        }
+
+        /* 新对话按钮 */
+        .new-chat-btn {
+            padding: 12px;
+            background-color: #3a3a3a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background-color: #4a4a4a;
+        }
+
+        .new-chat-btn i {
+            margin-right: 8px;
+        }
+
+        /* 对话历史列表 */
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item:hover {
+            background-color: #3a3a3a;
+        }
+
+        .history-item.active {
+            background-color: #4a4a4a;
+        }
+
+        /* 主聊天区域 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #1e1e1e;
+        }
+
+        /* 聊天消息区域 */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 消息气泡 */
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: #3a5a78;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background-color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* 消息元信息 */
+        .message-meta {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .message-meta .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .user-message .avatar {
+            background-color: #5a8ab8;
+        }
+
+        .ai-message .avatar {
+            background-color: #666;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 15px;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            max-height: 150px;
+        }
+
+        .message-input:focus {
+            border-color: #5a8ab8;
+        }
+
+        .send-btn {
+            padding: 0 20px;
+            background-color: #3a5a78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .send-btn:hover {
+            background-color: #4a6a88;
+        }
+
+        .send-btn:disabled {
+            background-color: #3a3a3a;
+            cursor: not-allowed;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                padding: 10px;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+            
+            .new-chat-btn {
+                margin-bottom: 0;
+                margin-right: 10px;
+                width: 120px;
+            }
+            
+            .chat-history {
+                display: flex;
+                overflow-x: auto;
+                flex: none;
+                height: 40px;
+                align-items: center;
+            }
+            
+            .history-item {
+                margin-bottom: 0;
+                margin-right: 5px;
+                padding: 8px 10px;
+            }
+            
+            .chat-container {
+                height: calc(100vh - 60px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧导航栏 -->
+    <div class="sidebar">
+        <button class="new-chat-btn" id="newChatBtn">
+            <i>+</i> 新对话
+        </button>
+        <div class="chat-history" id="chatHistory">
+            <!-- 对话历史将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 主聊天区域 -->
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <!-- 聊天消息将通过JavaScript动态生成 -->
+            <div class="message ai-message">
+                <div class="message-meta">
+                    <div class="avatar">AI</div>
+                    <span>AI助手</span>
+                </div>
+                <div class="message-content">
+                    你好！我是AI助手，有什么可以帮您的吗？
+                </div>
+            </div>
+        </div>
+        <div class="input-area">
+            <textarea class="message-input" id="messageInput" placeholder="输入消息..." rows="1"></textarea>
+            <button class="send-btn" id="sendBtn">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const newChatBtn = document.getElementById('newChatBtn');
+        const chatHistory = document.getElementById('chatHistory');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // 对话数据
+        let conversations = [];
+        let currentConversationId = null;
+
+        // 初始化应用
+        function init() {
+            loadConversations();
+            setupEventListeners();
+            autoResizeTextarea();
+            
+            // 如果没有对话，创建一个新的
+            if (conversations.length === 0) {
+                createNewConversation();
+            } else {
+                // 默认显示第一个对话
+                displayConversation(conversations[0].id);
+            }
+        }
+
+        // 加载对话历史
+        function loadConversations() {
+            // 这里可以从本地存储加载，现在使用模拟数据
+            conversations = [
+                {
+                    id: 'conv1',
+                    title: '第一次对话',
+                    messages: [
+                        { sender: 'ai', content: '你好！我是AI助手，有什么可以帮您的吗？' }
+                    ],
+                    createdAt: new Date()
+                }
+            ];
+            renderConversationList();
+        }
+
+        // 渲染对话列表
+        function renderConversationList() {
+            chatHistory.innerHTML = '';
+            conversations.forEach(conv => {
+                const item = document.createElement('div');
+                item.className = `history-item ${currentConversationId === conv.id ? 'active' : ''}`;
+                item.textContent = conv.title;
+                item.addEventListener('click', () => displayConversation(conv.id));
+                chatHistory.appendChild(item);
+            });
+        }
+
+        // 创建新对话
+        function createNewConversation() {
+            const newId = 'conv' + (conversations.length + 1);
+            const newConversation = {
+                id: newId,
+                title: '新对话 ' + (conversations.length + 1),
+                messages: [
+                    { sender: 'ai', content: '你好！我是AI助手，有什么可以帮您的吗？' }
+                ],
+                createdAt: new Date()
+            };
+            conversations.unshift(newConversation);
+            currentConversationId = newId;
+            renderConversationList();
+            displayConversation(newId);
+        }
+
+        // 显示对话内容
+        function displayConversation(conversationId) {
+            const conversation = conversations.find(conv => conv.id === conversationId);
+            if (!conversation) return;
+
+            currentConversationId = conversationId;
+            chatMessages.innerHTML = '';
+
+            conversation.messages.forEach(msg => {
+                addMessageToChat(msg.sender, msg.content, false);
+            });
+
+            // 滚动到底部
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            renderConversationList();
+        }
+
+        // 添加消息到聊天区域
+        function addMessageToChat(sender, content, saveToHistory = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'message-meta';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar';
+            avatarDiv.textContent = sender === 'user' ? '你' : 'AI';
+            
+            const senderSpan = document.createElement('span');
+            senderSpan.textContent = sender === 'user' ? '你' : 'AI助手';
+            
+            metaDiv.appendChild(avatarDiv);
+            metaDiv.appendChild(senderSpan);
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(metaDiv);
+            messageDiv.appendChild(contentDiv);
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // 滚动到底部
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // 保存到对话历史
+            if (saveToHistory && currentConversationId) {
+                const conversation = conversations.find(conv => conv.id === currentConversationId);
+                if (conversation) {
+                    conversation.messages.push({ sender, content });
+                    // 更新对话标题（如果是第一条用户消息）
+                    if (sender === 'user' && conversation.messages.filter(m => m.sender === 'user').length === 1) {
+                        conversation.title = content.length > 20 ? content.substring(0, 20) + '...' : content;
+                        renderConversationList();
+                    }
+                }
+            }
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !currentConversationId) return;
+
+            // 添加用户消息
+            addMessageToChat('user', message);
+            messageInput.value = '';
+            
+            // 模拟AI回复
+            setTimeout(() => {
+                const responses = [
+                    "我明白了，您是说：" + message + "，对吗？",
+                    "这是一个有趣的观点。关于" + message + "，您能详细说说吗？",
+                    "感谢您的分享。关于" + message + "，我有一些想法...",
+                    "我理解了您的问题。让我为您解答关于" + message + "的内容...",
+                    "这是一个很好的问题。关于" + message + "，我的回答是..."
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addMessageToChat('ai', randomResponse);
+            }, 1000);
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 新对话按钮
+            newChatBtn.addEventListener('click', createNewConversation);
+            
+            // 发送按钮
+            sendBtn.addEventListener('click', sendMessage);
+            
+            // 输入框回车发送
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // 自动调整输入框高度
+        function autoResizeTextarea() {
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
